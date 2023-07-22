@@ -5,7 +5,7 @@ env:
     GH_TOKEN: "ENCRYPTED[!59def97ae0387ce36715d7586f10330b2896b7f6ccffb8c59002756eb85085465ddc8e18f7758e66108354160073391c!]"
 
 task:
-  name: Build DoraCore Canary Kernel
+  name: Build DoraCore Canary Kernel Sweet
   timeout_in: 2h
   only_if: $CIRRUS_REPO_OWNER == 'DoraCore-Projects' && $CIRRUS_BRANCH == 'main'
   skip: $CIRRUS_BRANCH != 'main'
@@ -23,10 +23,10 @@ task:
     - git config --global user.email "polarisdp@gmail.com"
     - git config --global credential.helper store
     - curl -s --output Infomation.md https://raw.githubusercontent.com/DoraCore-Projects/.github/main/profile/README.md
-    - bash run.sh
+    - bash run.sh canary sweet
 
 task:
-  name: Build DoraCore Stable Kernel
+  name: Build DoraCore Stable Kernel Sweet
   timeout_in: 2h
   only_if: $CIRRUS_REPO_OWNER == 'DoraCore-Projects' && $CIRRUS_BRANCH == 'main'
   skip: $CIRRUS_BRANCH != 'main'
@@ -44,4 +44,46 @@ task:
     - git config --global user.email "polarisdp@gmail.com"
     - git config --global credential.helper store
     - curl -s --output Infomation.md https://raw.githubusercontent.com/DoraCore-Projects/.github/main/profile/README.md
-    - bash run.sh stable
+    - bash run.sh stable sweet
+
+task:
+  name: Build DoraCore Canary Kernel Floral
+  timeout_in: 2h
+  only_if: $CIRRUS_REPO_OWNER == 'DoraCore-Projects' && $CIRRUS_BRANCH == 'main'
+  skip: $CIRRUS_BRANCH != 'main'
+  trigger_type: manual
+  container:
+    image: dopaemon/doracore:latest
+    cpu: 4
+    memory: 6G
+
+  setup_script:
+    - sudo apt update && sudo apt install jq -y
+
+  build_canary_script:
+    - git config --global user.name "dopaemon"
+    - git config --global user.email "polarisdp@gmail.com"
+    - git config --global credential.helper store
+    - curl -s --output Infomation.md https://raw.githubusercontent.com/DoraCore-Projects/.github/main/profile/README.md
+    - bash run.sh canary floral
+
+task:
+  name: Build DoraCore Stable Kernel Floral
+  timeout_in: 2h
+  only_if: $CIRRUS_REPO_OWNER == 'DoraCore-Projects' && $CIRRUS_BRANCH == 'main'
+  skip: $CIRRUS_BRANCH != 'main'
+  trigger_type: manual
+  container:
+    image: dopaemon/doracore:latest
+    cpu: 4
+    memory: 6G
+
+  setup_script:
+    - sudo apt update && sudo apt install jq -y
+
+  build_canary_script:
+    - git config --global user.name "dopaemon"
+    - git config --global user.email "polarisdp@gmail.com"
+    - git config --global credential.helper store
+    - curl -s --output Infomation.md https://raw.githubusercontent.com/DoraCore-Projects/.github/main/profile/README.md
+    - bash run.sh stable floral

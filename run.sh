@@ -10,6 +10,7 @@ export BUILD_TIME=$(date +"%Y%m%d-%H%M%S")
 export ARCH=arm64
 export SUBARCH=arm64
 export ZIPNAME=XYZABC
+export DEVICE=sweet
 
 export BUILD_TYPE=canary
 export PRERELEASE=true
@@ -18,6 +19,13 @@ if [ x${1} == xstable ]; then
     export BUILD_TYPE=stable
     export PRERELEASE=false
     echo "Build Type: Stable"
+fi
+
+echo "Build Device: sweet"
+if [ x${2} == xfloral ]; then
+    export DEVICE=floral
+    export KERNEL_DEFCONFIG=floral_defconfig
+    echo "Build Device: floral"
 fi
 
 if [ x$BUILD_TYPE == xstable ]; then
@@ -31,12 +39,23 @@ fi
 
 # Clone kernel
 echo -e "$green << cloning kernel >> \n $white"
-git clone -j$(nproc --all) \
-          --single-branch \
-          -b android \
-          https://${GH_TOKEN}@github.com/DoraCore-Projects/android_kernel_xiaomi_sweet.git \
-          $KERNELDIR > /dev/null 2>&1
-cd $KERNELDIR
+if [ x$DEVICE == xsweet ]; then
+    git clone -j$(nproc --all) \
+              --single-branch \
+              -b android \
+              https://${GH_TOKEN}@github.com/DoraCore-Projects/android_kernel_xiaomi_sweet.git \
+              $KERNELDIR > /dev/null 2>&1
+    cd $KERNELDIR
+fi
+
+if [ x$DEVICE == xfloral ]; then
+    git clone -j$(nproc --all) \
+              --single-branch \
+              -b 11.0.0-sultan \
+              https://github.com/DoraCore-Projects/android_kernel_xiaomi_floral.git \
+              $KERNELDIR > /dev/null 2>&1
+    cd $KERNELDIR
+fi
 
 # Cleanup
 rm -rf $PWDIR/ZIPOUT
@@ -113,10 +132,23 @@ start_build() {
     export DTBO=$KERNELDIR/out/arch/arm64/boot/dtbo.img
     export DTB=$KERNELDIR/out/arch/arm64/boot/dtb
 
+    if [ x$DEVICE == xfloral ]; then
+        export IMG=$KERNELDIR/out/arch/arm64/boot/Image.lz4
+        export DTBO=$KERNELDIR/out/arch/arm64/boot/dtbo.img
+        export DTB=$KERNELDIR/out/arch/arm64/boot/dtb
+    fi
+
     if [ -f $IMG ] && [ -f $DTBO ] && [ -f $DTB ]; then
         echo "------ Finishing Build ------"
-        git clone https://${GH_TOKEN}@github.com/DoraCore-Projects/Anykernel3.git $ANYKERNELDIR
-        zip -rv9 $KERNELDIR/Prebuilt-${BUILD_VARIANT}.zip $KERNELDIR/out/arch/arm64/boot
+        if [ x$DEVICE == xsweet ]; then
+            git clone -b DoraCore --single-branch https://${GH_TOKEN}@github.com/DoraCore-Projects/Anykernel3.git $ANYKERNELDIR
+        fi
+
+        if [ x$DEVICE == xfloral ]; then
+            git clone -b floral --single-branch https://${GH_TOKEN}@github.com/DoraCore-Projects/Anykernel3.git $ANYKERNELDIR
+            export ZIPNAME="DoraCore-${DEVICE}-${BUILD_TIME}.zip"
+        fi
+        zip -rv9 $KERNELDIR/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip $KERNELDIR/out/arch/arm64/boot
         cp -r $IMG $ANYKERNELDIR/
         cp -r $DTBO $ANYKERNELDIR/
         cp -r $DTB $ANYKERNELDIR/
@@ -128,7 +160,7 @@ start_build() {
         echo ""
         echo -e "$ZIPNAME is ready!"
         mv $ANYKERNELDIR/$ZIPNAME $PWDIR/ZIPOUT/
-        mv $KERNELDIR/Prebuilt-${BUILD_VARIANT}.zip $PWDIR/ZIPOUT/
+        mv $KERNELDIR/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip $PWDIR/ZIPOUT/
         rm -rf $ANYKERNELDIR
         ls $PWDIR/ZIPOUT/
         echo ""
@@ -185,18 +217,21 @@ upload_release_file() {
 for BUILD_VARIANT in ${BUILD_VARIANTS[@]}; do
     git reset --hard ${commit_sha}
     echo "Build Variant: ${BUILD_VARIANT}"
-    export ZIPNAME="DoraCore-${BUILD_VARIANT}-${BUILD_TYPE}-sweet-${BUILD_TIME}.zip"
-    if [ x$BUILD_VARIANT == xMIUI ]; then
+    export ZIPNAME="DoraCore-${BUILD_VARIANT}-${BUILD_TYPE}-${DEVICE}-${BUILD_TIME}.zip"
+    if [ x$DEVICE == xfloral ]; then
+        export ZIPNAME="DoraCore-${DEVICE}-${BUILD_TIME}.zip"
+    fi
+    if [ x$BUILD_VARIANT == xMIUI ] && [ x$DEVICE == xsweet ]; then
         git reset --hard ${commit_sha}
         git cherry-pick 370deacbaec3961195d0a9e9a7950e546f075766
     fi
-    if [ x$BUILD_VARIANT == xOSS-KSU ]; then
+    if [ x$BUILD_VARIANT == xOSS-KSU ] && [ x$DEVICE == xsweet ]; then
         git cherry-pick 7cc9c8e01acf680d1a7f83c90e1eabdf5a11e6fb
     fi
-    if [ x$BUILD_VARIANT == xMIUI-KSU ]; then
+    if [ x$BUILD_VARIANT == xMIUI-KSU ] && [ x$DEVICE == xsweet ]; then
         git cherry-pick 7cc9c8e01acf680d1a7f83c90e1eabdf5a11e6fb
     fi
-    if [ x$BUILD_TYPE == xcanary ]; then
+    if [ x$BUILD_TYPE == xcanary ] && [ x$DEVICE == xsweet ]; then
         git cherry-pick 7cc9c8e01acf680d1a7f83c90e1eabdf5a11e6fb
     fi
 #    if [ x$BUILD_VARIANT == xMIUI-135HZ ]; then
@@ -211,19 +246,37 @@ for BUILD_VARIANT in ${BUILD_VARIANTS[@]}; do
     start_build
 done
 
-if [ -f $PWDIR/ZIPOUT/DoraCore-MIUI-${BUILD_TYPE}-sweet-${BUILD_TIME}.zip ] && [ -f $PWDIR/ZIPOUT/DoraCore-OSS-${BUILD_TYPE}-sweet-${BUILD_TIME}.zip ]; then
-    # Create Release
-    create_release
-else
-    echo "Build Failed !!!"
-    exit 1
+if [ x$DEVICE == xsweet ]; then
+    if [ -f $PWDIR/ZIPOUT/DoraCore-MIUI-${BUILD_TYPE}-sweet-${BUILD_TIME}.zip ] && [ -f $PWDIR/ZIPOUT/DoraCore-OSS-${BUILD_TYPE}-sweet-${BUILD_TIME}.zip ]; then
+        # Create Release
+        create_release
+    else
+        echo "Build Failed !!!"
+        exit 1
+    fi
+fi
+
+if [ x$DEVICE == xfloral ]; then
+    if [ -f $PWDIR/ZIPOUT/DoraCore-floral-${BUILD_TIME}.zip ]; then
+        # Create Release
+        create_release
+    else
+        echo "Build Failed !!!"
+        exit 1
+    fi
 fi
 
 # Upload Release Assets
-for BUILD_VARIANT in ${BUILD_VARIANTS[@]}; do
-    upload_release_file $PWDIR/ZIPOUT/DoraCore-${BUILD_VARIANT}-${BUILD_TYPE}-sweet-${BUILD_TIME}.zip
-done
+if [ x$DEVICE == xsweet ]; then
+    for BUILD_VARIANT in ${BUILD_VARIANTS[@]}; do
+        upload_release_file $PWDIR/ZIPOUT/DoraCore-${BUILD_VARIANT}-${BUILD_TYPE}-${DEVICE}-${BUILD_TIME}.zip
+    done
+fi
+
+if [ x$DEVICE == xfloral ]; then
+    upload_release_file $PWDIR/ZIPOUT/DoraCore-${DEVICE}-${BUILD_TIME}.zip
+fi
 
 for BUILD_VARIANT in ${BUILD_VARIANTS[@]}; do
-    upload_release_file $PWDIR/ZIPOUT/Prebuilt-${BUILD_VARIANT}.zip
+    upload_release_file $PWDIR/ZIPOUT/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip
 done
