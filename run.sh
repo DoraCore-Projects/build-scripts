@@ -21,12 +21,12 @@ if [ x${1} == xstable ]; then
     echo "Build Type: Stable"
 fi
 
-echo "Build Device: sweet"
 if [ x${2} == xfloral ]; then
     export DEVICE=floral
     export KERNEL_DEFCONFIG=floral_defconfig
-    echo "Build Device: floral"
 fi
+
+echo "Build Device: ${DEVICE}"
 
 if [ x$BUILD_TYPE == xstable ]; then
     export BUILD_VARIANTS=(OSS MIUI OSS-KSU MIUI-KSU)
