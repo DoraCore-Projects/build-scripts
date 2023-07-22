@@ -37,6 +37,10 @@ if [ x$BUILD_TYPE == xcanary ]; then
     export BUILD_VARIANTS=(OSS MIUI)
 fi
 
+if [ x$BUILD_TYPE == xcanary ] && [ x$DEVICE == xfloral]; then
+    export BUILD_VARIANTS=(OSS)
+fi
+
 # Clone kernel
 echo -e "$green << cloning kernel >> \n $white"
 if [ x$DEVICE == xsweet ]; then
