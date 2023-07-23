@@ -279,8 +279,11 @@ fi
 
 if [ x$DEVICE == xfloral ]; then
     upload_release_file $PWDIR/ZIPOUT/DoraCore-${DEVICE}-${BUILD_TIME}.zip
+    upload_release_file $PWDIR/ZIPOUT/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip
 fi
 
-for BUILD_VARIANT in ${BUILD_VARIANTS[@]}; do
-    upload_release_file $PWDIR/ZIPOUT/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip
-done
+if [ x$DEVICE == xsweet ]; then
+    for BUILD_VARIANT in ${BUILD_VARIANTS[@]}; do
+        upload_release_file $PWDIR/ZIPOUT/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip
+    done
+fi
