@@ -114,6 +114,8 @@ nocol='\033[0m'
 
 start_build() {
     if [[ "${COMPILER}" = gcc ]]; then
+        cd ${PWDIR}
+        pwd
         echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
         echo -e "$blue***********************************************"
         echo "          BUILDING KERNEL          "
@@ -131,12 +133,13 @@ start_build() {
         fi
 
         if [ ! -f "${PWDIR}/ld.lld" ]; then
-            wget https://gitlab.com/zlatanr/dora-clang-1/-/raw/master/bin/lld -O ld.lld && chmod +x ld.lld
+            wget https://gitlab.com/zlatanr/dora-clang-1/-/raw/master/bin/lld -O "${PWDIR}"/ld.lld && chmod +x ld.lld
         fi
 
-        KBUILD_COMPILER_STRING=$("${PWDIR}"/gcc64/bin/aarch64-elf-gcc --version | head -n 1)
-        export KBUILD_COMPILER_STRING
+        export KBUILD_COMPILER_STRING=$("${PWDIR}"/gcc64/bin/aarch64-elf-gcc --version | head -n 1)
         export PATH="${PWDIR}"/gcc32/bin:"${PWDIR}"/gcc64/bin:/usr/bin/:${PATH}
+
+        cd ${KERNELDIR}
 
         make "${MAKE[@]}" $KERNEL_DEFCONFIG
 
@@ -153,7 +156,7 @@ start_build() {
         )
 
         make -j$(nproc --all) "${MAKE[@]}" Image.lz4 2>&1 | tee log.txt
-        make -j$(nproc --all) "${MAKE[@]}" dtbs dtbo.img dtb.img 2>&1 | tee log.txt
+        # make -j$(nproc --all) "${MAKE[@]}" dtbs dtbo.img dtb.img 2>&1 | tee log.txt
 
     elif [[ "${COMPILER}" = clang ]]; then
         echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
