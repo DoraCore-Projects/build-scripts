@@ -37,7 +37,7 @@ if [ x$BUILD_TYPE == xcanary ]; then
     export BUILD_VARIANTS=(OSS MIUI)
 fi
 
-if [ x$DEVICE == xfloral]; then
+if [ x$DEVICE == xfloral ]; then
     export BUILD_VARIANTS=(OSS)
 fi
 
