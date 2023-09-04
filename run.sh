@@ -184,6 +184,7 @@ start_build() {
         export IMG=$KERNELDIR/out/arch/arm64/boot/Image.gz
         export DTBO=$KERNELDIR/out/arch/arm64/boot/dtbo.img
         export DTB=$KERNELDIR/out/arch/arm64/boot/dtb
+    fi
 
     if [ x$DEVICE == xfloral ]; then
         export IMG=$KERNELDIR/out/arch/arm64/boot/Image.lz4
