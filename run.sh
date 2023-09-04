@@ -80,17 +80,19 @@ sleep 5
 mkdir -p $PWDIR/ZIPOUT
 
 # Tool Chain
-echo -e "$green << cloning gcc >> \n $white"
-# git clone --depth=1 https://github.com/mvaisakh/gcc-arm64 "$PWDIR"/gcc64 > /dev/null 2>&1
-# git clone --depth=1 https://github.com/mvaisakh/gcc-arm "$PWDIR"/gcc32 > /dev/null 2>&1
-git clone -b master --single-branch --depth=1 https://github.com/radcolor/aarch64-linux-gnu.git "$PWDIR"/gcc64 > /dev/null 2>&1
-git clone -b master --single-branch --depth=1 https://github.com/radcolor/arm-linux-gnueabi.git"$PWDIR"/gcc32 > /dev/null 2>&1
-# export CROSS_COMPILE="$PWDIR"/gcc64/bin/aarch64-elf-
-# export CROSS_COMPILE_ARM32="$PWDIR"/gcc32/bin/arm-eabi-
-export CROSS_COMPILE="$PWDIR"/gcc64/bin/aarch64-linux-gnu-
-export CROSS_COMPILE_ARM32="$PWDIR"/gcc32/bin/arm-linux-gnueabi-
-export PATH="$PWDIR/gcc64/bin:$PWDIR/gcc32/bin:$PATH"
-export KBUILD_COMPILER_STRING=$("$PWDIR"/gcc64/bin/aarch64-linux-gnu-gcc --version | head -n 1)
+if [ x$DEVICE == xsweet ]; then
+    echo -e "$green << cloning gcc >> \n $white"
+    # git clone --depth=1 https://github.com/mvaisakh/gcc-arm64 "$PWDIR"/gcc64 > /dev/null 2>&1
+    # git clone --depth=1 https://github.com/mvaisakh/gcc-arm "$PWDIR"/gcc32 > /dev/null 2>&1
+    git clone -b master --single-branch --depth=1 https://github.com/radcolor/aarch64-linux-gnu.git "$PWDIR"/gcc64 > /dev/null 2>&1
+    git clone -b master --single-branch --depth=1 https://github.com/radcolor/arm-linux-gnueabi.git"$PWDIR"/gcc32 > /dev/null 2>&1
+    # export CROSS_COMPILE="$PWDIR"/gcc64/bin/aarch64-elf-
+    # export CROSS_COMPILE_ARM32="$PWDIR"/gcc32/bin/arm-eabi-
+    export CROSS_COMPILE="$PWDIR"/gcc64/bin/aarch64-linux-gnu-
+    export CROSS_COMPILE_ARM32="$PWDIR"/gcc32/bin/arm-linux-gnueabi-
+    export PATH="$PWDIR/gcc64/bin:$PWDIR/gcc32/bin:$PATH"
+    export KBUILD_COMPILER_STRING=$("$PWDIR"/gcc64/bin/aarch64-linux-gnu-gcc --version | head -n 1)
+fi
 
 # Clang
 echo -e "$green << cloning clang >> \n $white"
@@ -109,68 +111,113 @@ red='\033[0;31m'
 nocol='\033[0m'
 
 start_build() {
-    echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
-    echo -e "$blue***********************************************"
-    echo "          BUILDING KERNEL          "
-    echo -e "***********************************************$nocol"
-    make $KERNEL_DEFCONFIG O=out CC=clang
-    make -j$(nproc --all) O=out CC=clang \
-        ARCH=arm64 \
-        LLVM=1 \
-        LLVM_IAS=1 \
-        AR=llvm-ar \
-        NM=llvm-nm \
-        LD=ld.lld \
-        OBJCOPY=llvm-objcopy \
-        OBJDUMP=llvm-objdump \
-        STRIP=llvm-strip \
-        CLANG_TRIPLE=aarch64-linux-gnu- \
-        CROSS_COMPILE="$PWDIR"/gcc64/bin/aarch64-linux-gnu- \
-	CROSS_COMPILE_ARM32="$PWDIR"/gcc32/bin/arm-linux-gnueabi- \
-        2>&1 | tee error.log
+    if [[ "${COMPILER}" = gcc ]]; then
+        echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
+        echo -e "$blue***********************************************"
+        echo "          BUILDING KERNEL          "
+        echo -e "***********************************************$nocol"
+        if [ ! -d "${PWDIR}/gcc64" ]; then
+            wget -O "${PWDIR}"/64.zip https://github.com/mvaisakh/gcc-arm64/archive/1a4410a4cf49c78ab83197fdad1d2621760bdc73.zip
+            unzip "${PWDIR}"/64.zip
+            mv "${PWDIR}"/gcc-arm64-1a4410a4cf49c78ab83197fdad1d2621760bdc73 "${PWDIR}"/gcc64
+        fi
 
-    find $KERNELDIR/out/arch/arm64/boot/dts/ -name '*.dtb' -exec cat {} + > $KERNELDIR/out/arch/arm64/boot/dtb
+        if [ ! -d "${PWDIR}/gcc32" ]; then
+            wget -O "${PWDIR}"/32.zip https://github.com/mvaisakh/gcc-arm/archive/c8b46a6ab60d998b5efa1d5fb6aa34af35a95bad.zip
+            unzip "${PWDIR}"/32.zip
+            mv "${PWDIR}"/gcc-arm-c8b46a6ab60d998b5efa1d5fb6aa34af35a95bad "${PWDIR}"/gcc32
+        fi
 
-    # export IMGDTB=$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb
-    export IMG=$KERNELDIR/out/arch/arm64/boot/Image.gz
-    export DTBO=$KERNELDIR/out/arch/arm64/boot/dtbo.img
-    export DTB=$KERNELDIR/out/arch/arm64/boot/dtb
+        if [ ! -f "${PWDIR}/ld.lld" ]; then
+            wget https://gitlab.com/zlatanr/dora-clang-1/-/raw/master/bin/lld -O ld.lld && chmod +x ld.lld
+        fi
+
+        KBUILD_COMPILER_STRING=$("${PWDIR}"/gcc64/bin/aarch64-elf-gcc --version | head -n 1)
+        export KBUILD_COMPILER_STRING
+        export PATH="${PWDIR}"/gcc32/bin:"${PWDIR}"/gcc64/bin:/usr/bin/:${PATH}
+
+        make "${MAKE[@]}" $KERNEL_DEFCONFIG
+
+        MAKE+=(
+            ARCH=arm64
+            O=out
+            CROSS_COMPILE=aarch64-elf-
+            CROSS_COMPILE_ARM32=arm-eabi-
+            LD="${PWDIR}"/ld.lld
+            AR=llvm-ar
+            OBJDUMP=llvm-objdump
+            STRIP=llvm-strip
+            CC=aarch64-elf-gcc
+        )
+
+        make -j$(nproc --all) "${MAKE[@]}" Image.lz4 2>&1 | tee log.txt
+        make -j$(nproc --all) "${MAKE[@]}" dtbs dtbo.img dtb.img 2>&1 | tee log.txt
+
+    elif [[ "${COMPILER}" = clang ]]; then
+        echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
+        echo -e "$blue***********************************************"
+        echo "          BUILDING KERNEL          "
+        echo -e "***********************************************$nocol"
+        make $KERNEL_DEFCONFIG O=out CC=clang
+        make -j$(nproc --all) O=out CC=clang \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            AR=llvm-ar \
+            NM=llvm-nm \
+            LD=ld.lld \
+            OBJCOPY=llvm-objcopy \
+            OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE="$PWDIR"/gcc64/bin/aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32="$PWDIR"/gcc32/bin/arm-linux-gnueabi- \
+            2>&1 | tee error.log
+    fi
+
+    if [ x$DEVICE == xsweet ]; then
+        find $KERNELDIR/out/arch/arm64/boot/dts/ -name '*.dtb' -exec cat {} + > $KERNELDIR/out/arch/arm64/boot/dtb
+
+        # export IMGDTB=$KERNELDIR/out/arch/arm64/boot/Image.gz-dtb
+        export IMG=$KERNELDIR/out/arch/arm64/boot/Image.gz
+        export DTBO=$KERNELDIR/out/arch/arm64/boot/dtbo.img
+        export DTB=$KERNELDIR/out/arch/arm64/boot/dtb
 
     if [ x$DEVICE == xfloral ]; then
         export IMG=$KERNELDIR/out/arch/arm64/boot/Image.lz4
-        export DTBO=$KERNELDIR/out/arch/arm64/boot/dtbo.img
-        export DTB=$KERNELDIR/out/arch/arm64/boot/dtb
+        git clone -b "floral/11.0.0-sultan" https://github.com/kerneltoast/AnyKernel3.git $ANYKERNELDIR
+        cp -r $IMG $ANYKERNELDIR/
+        cd $ANYKERNELDIR/
+        zip -r9 "$ZIPNAME" * -x '*.git*' README.md *placeholder
     fi
 
     if [ -f $IMG ] && [ -f $DTBO ] && [ -f $DTB ]; then
         echo "------ Finishing Build ------"
         if [ x$DEVICE == xsweet ]; then
             git clone -b DoraCore --single-branch https://${GH_TOKEN}@github.com/DoraCore-Projects/Anykernel3.git $ANYKERNELDIR
+            zip -rv9 $KERNELDIR/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip $KERNELDIR/out/arch/arm64/boot
+            cp -r $IMG $ANYKERNELDIR/
+            cp -r $DTBO $ANYKERNELDIR/
+            cp -r $DTB $ANYKERNELDIR/
+            cd $ANYKERNELDIR
+            sed -i "s/is_slot_device=0/is_slot_device=auto/g" anykernel.sh
+            zip -r9 "$ZIPNAME" * -x '*.git*' README.md *placeholder
         fi
-
-        if [ x$DEVICE == xfloral ]; then
-            git clone -b floral --single-branch https://${GH_TOKEN}@github.com/DoraCore-Projects/Anykernel3.git $ANYKERNELDIR
-            export ZIPNAME="DoraCore-${DEVICE}-${BUILD_TIME}.zip"
-        fi
-        zip -rv9 $KERNELDIR/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip $KERNELDIR/out/arch/arm64/boot
-        cp -r $IMG $ANYKERNELDIR/
-        cp -r $DTBO $ANYKERNELDIR/
-        cp -r $DTB $ANYKERNELDIR/
-        cd $ANYKERNELDIR
-        sed -i "s/is_slot_device=0/is_slot_device=auto/g" anykernel.sh
-        zip -r9 "$ZIPNAME" * -x '*.git*' README.md *placeholder
-        cd -
-        echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
-        echo ""
-        echo -e "$ZIPNAME is ready!"
-        mv $ANYKERNELDIR/$ZIPNAME $PWDIR/ZIPOUT/
-        mv $KERNELDIR/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip $PWDIR/ZIPOUT/
-        rm -rf $ANYKERNELDIR
-        ls $PWDIR/ZIPOUT/
-        echo ""
     else
         echo -e "\n Compilation Failed!"
     fi
+
+    cd -
+    echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
+    echo ""
+    echo -e "$ZIPNAME is ready!"
+    mv $ANYKERNELDIR/$ZIPNAME $PWDIR/ZIPOUT/
+    if [ x$DEVICE == xsweet ]; then
+        mv $KERNELDIR/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip $PWDIR/ZIPOUT/
+    fi
+    rm -rf $ANYKERNELDIR
+    ls $PWDIR/ZIPOUT/
+    echo ""
 }
 
 generate_message() {
@@ -279,7 +326,7 @@ fi
 
 if [ x$DEVICE == xfloral ]; then
     upload_release_file $PWDIR/ZIPOUT/DoraCore-${DEVICE}-${BUILD_TIME}.zip
-    upload_release_file $PWDIR/ZIPOUT/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip
+    # upload_release_file $PWDIR/ZIPOUT/Prebuilt-${BUILD_VARIANT}-${DEVICE}.zip
 fi
 
 if [ x$DEVICE == xsweet ]; then
