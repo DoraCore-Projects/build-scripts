@@ -18,11 +18,13 @@ echo "Build Type: Canary"
 if [ x${1} == xstable ]; then
     export BUILD_TYPE=stable
     export PRERELEASE=false
+    export COMPILER=clang
     echo "Build Type: Stable"
 fi
 
 if [ x${2} == xfloral ]; then
     export DEVICE=floral
+    export COMPILER=gcc
     export KERNEL_DEFCONFIG=floral_defconfig
 fi
 
@@ -56,7 +58,7 @@ if [ x$DEVICE == xfloral ]; then
     git clone -j$(nproc --all) \
               --single-branch \
               -b 11.0.0-sultan \
-              https://github.com/DoraCore-Projects/android_kernel_xiaomi_floral.git \
+              https://${GH_TOKEN}@github.com/DoraCore-Projects/android_kernel_xiaomi_floral.git \
               $KERNELDIR > /dev/null 2>&1
     cd $KERNELDIR
 fi
