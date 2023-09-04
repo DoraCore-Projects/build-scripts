@@ -16,7 +16,7 @@ task:
     memory: 6G
 
   setup_script:
-    - sudo apt update && sudo apt install jq -y
+    - sudo apt update && sudo apt install jq wget -y
 
   build_canary_script:
     - git config --global user.name "dopaemon"
@@ -37,7 +37,7 @@ task:
     memory: 6G
 
   setup_script:
-    - sudo apt update && sudo apt install jq -y
+    - sudo apt update && sudo apt install jq wget -y
 
   build_canary_script:
     - git config --global user.name "dopaemon"
@@ -58,7 +58,7 @@ task:
     memory: 6G
 
   setup_script:
-    - sudo apt update && sudo apt install jq -y
+    - sudo apt update && sudo apt install jq wget -y
 
   build_canary_script:
     - git config --global user.name "dopaemon"
@@ -79,7 +79,7 @@ task:
     memory: 6G
 
   setup_script:
-    - sudo apt update && sudo apt install jq -y
+    - sudo apt update && sudo apt install jq wget -y
 
   build_canary_script:
     - git config --global user.name "dopaemon"
