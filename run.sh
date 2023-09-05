@@ -156,7 +156,7 @@ start_build() {
         )
 
         make -j$(nproc --all) "${MAKEFLAGS[@]}" Image.lz4 2>&1 | tee log.txt
-        # make -j$(nproc --all) "${MAKEFLAGS[@]}" dtbs dtbo.img dtb.img 2>&1 | tee log.txt
+        make -j$(nproc --all) "${MAKEFLAGS[@]}" dtbs dtbo.img dtb.img 2>&1 | tee log.txt
 
     elif [[ "${COMPILER}" = clang ]]; then
         echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
@@ -191,9 +191,17 @@ start_build() {
 
     if [ x$DEVICE == xfloral ]; then
         export IMG=$KERNELDIR/out/arch/arm64/boot/Image.lz4
+        export DTBO=$KERNELDIR/out/arch/arm64/boot/dtbo.img
+        export DTB=$KERNELDIR/out/arch/arm64/boot/dtb
+
         git clone -b "floral/11.0.0-sultan" https://github.com/kerneltoast/AnyKernel3.git $ANYKERNELDIR
+
         cp -r $IMG $ANYKERNELDIR/
+        cp -r $DTBO $ANYKERNELDIR/
+        cp -r $DTB $ANYKERNELDIR/
+
         cd $ANYKERNELDIR/
+
         zip -r9 "$ZIPNAME" * -x '*.git*' README.md *placeholder
     fi
 
