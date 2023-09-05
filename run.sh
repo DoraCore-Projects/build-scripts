@@ -156,7 +156,7 @@ start_build() {
         )
 
         make -j$(nproc --all) "${MAKEFLAGS[@]}" Image.lz4 2>&1 | tee log.txt
-        make -j$(nproc --all) "${MAKEFLAGS[@]}" dtbs dtbo.img dtb.img 2>&1 | tee log.txt
+        make -j$(nproc --all) "${MAKEFLAGS[@]}" dtbs dtbo.img 2>&1 | tee log.txt
 
     elif [[ "${COMPILER}" = clang ]]; then
         echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
