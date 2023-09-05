@@ -190,6 +190,8 @@ start_build() {
     fi
 
     if [ x$DEVICE == xfloral ]; then
+        find $KERNELDIR/out/arch/arm64/boot/dts/ -name '*.dtb' -exec cat {} + > $KERNELDIR/out/arch/arm64/boot/dtb
+
         export IMG=$KERNELDIR/out/arch/arm64/boot/Image.lz4
         export DTBO=$KERNELDIR/out/arch/arm64/boot/dtbo.img
         export DTB=$KERNELDIR/out/arch/arm64/boot/dtb
