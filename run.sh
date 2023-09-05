@@ -143,7 +143,7 @@ start_build() {
 
         make O=out $KERNEL_DEFCONFIG
 
-        MAKE+=(
+        MAKEFLAGS+=(
             ARCH=arm64
             O=out
             CROSS_COMPILE=aarch64-elf-
@@ -155,8 +155,8 @@ start_build() {
             CC=aarch64-elf-gcc
         )
 
-        make -j$(nproc --all) "${MAKE[@]}" Image.lz4 2>&1 | tee log.txt
-        # make -j$(nproc --all) "${MAKE[@]}" dtbs dtbo.img dtb.img 2>&1 | tee log.txt
+        make -j$(nproc --all) "${MAKEFLAGS[@]}" Image.lz4 2>&1 | tee log.txt
+        # make -j$(nproc --all) "${MAKEFLAGS[@]}" dtbs dtbo.img dtb.img 2>&1 | tee log.txt
 
     elif [[ "${COMPILER}" = clang ]]; then
         echo "**** Kernel defconfig is set to $KERNEL_DEFCONFIG ****"
