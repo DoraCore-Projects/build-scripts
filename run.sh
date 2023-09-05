@@ -141,7 +141,7 @@ start_build() {
 
         cd ${KERNELDIR}
 
-        make "${MAKE[@]}" $KERNEL_DEFCONFIG
+        make O=out $KERNEL_DEFCONFIG
 
         MAKE+=(
             ARCH=arm64
