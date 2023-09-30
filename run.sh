@@ -18,7 +18,6 @@ echo "Build Type: Canary"
 if [ x${1} == xstable ]; then
     export BUILD_TYPE=stable
     export PRERELEASE=false
-    export COMPILER=clang
     echo "Build Type: Stable"
 fi
 
@@ -26,6 +25,12 @@ if [ x${2} == xfloral ]; then
     export DEVICE=floral
     export COMPILER=gcc
     export KERNEL_DEFCONFIG=floral_defconfig
+fi
+
+if [ x${2} == xsweet ]; then
+    export DEVICE=sweet
+    export COMOILER=clang
+    export KERNEL_DEFCONFIG=sweet-perf_defconfig
 fi
 
 echo "Build Device: ${DEVICE}"
