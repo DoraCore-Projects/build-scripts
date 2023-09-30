@@ -29,7 +29,7 @@ fi
 
 if [ x${2} == xsweet ]; then
     export DEVICE=sweet
-    export COMOILER=clang
+    export COMPILER=clang
     export KERNEL_DEFCONFIG=sweet-perf_defconfig
 fi
 
